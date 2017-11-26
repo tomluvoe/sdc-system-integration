@@ -5,6 +5,7 @@ from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
 
 import math
+import sys
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
@@ -38,15 +39,18 @@ class WaypointUpdater(object):
 
         # TODO: Add other member variables you need below
         self.base_waypoints = None
+        self.current_pose = None
 
         rospy.spin()
 
     def pose_cb(self, msg):
-        # TODO: Implement
-        pass
+        self.current_pose = msg.pose
+        #rospy.loginfo("wp_updater: Current position %f, %f", self.current_pose.position.x, self.current_pose.position.y)
+        self.publish_waypoints()
 
     def waypoints_cb(self, lane):
         self.base_waypoints = lane.waypoints
+        self.publish_waypoints()
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
@@ -55,6 +59,36 @@ class WaypointUpdater(object):
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
         pass
+
+    def publish_waypoints(self):
+        if(self.base_waypoints and self.current_pose):
+            car_p = self.current_pose
+            base_wp = self.base_waypoints
+            closest_wp = self.closest_waypoint(base_wp, car_p)
+            mapx = base_wp[closest_wp].pose.pose.position.x
+            mapy = base_wp[closest_wp].pose.pose.position.y
+            heading = math.atan2(mapy-car_p.position.y, mapx-car_p.position.x)
+            theta = car_p.orientation.w
+            angle = abs(theta - heading)
+            if (angle > math.pi/4):
+                closest_wp += 1
+            rospy.loginfo("wp_updater: Next wp for car %f, %f is %i", car_p.position.x, car_p.position.y, closest_wp)
+            final_waypoints = Lane()
+            for i in range(LOOKAHEAD_WPS):
+                final_waypoints.waypoints.append(base_wp[(i+closest_wp)%len(base_wp)])
+            self.final_waypoints_pub.publish(final_waypoints)
+
+    def closest_waypoint(self, waypoints, car_pose):
+        dist = sys.maxsize
+        idx = 0
+        dl = lambda a, b: math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2)
+        for i in range(len(waypoints)):
+            d = dl(waypoints[i].pose.pose.position, car_pose.position)
+            if d < dist:
+                dist = d
+                idx = i
+        #rospy.loginfo("wp_updater: Closest waypoint for car %f, %f is index %i", car_pose.position.x, car_pose.position.y, idx)
+        return idx 
 
     def get_waypoint_velocity(self, waypoint):
         return waypoint.twist.twist.linear.x
