@@ -105,8 +105,8 @@ class DBWNode(object):
                 continue
                 
             #continue driving if less than 3 waypoints.
-            if(len(self.waypoints) < 3):
-                continue
+            ###if(len(self.waypoints) < 3):
+            ###    continue
                 
             
             #Enable manual override and manual stop.
@@ -148,23 +148,28 @@ class DBWNode(object):
         self.brake_pub.publish(bcmd)
         
     def  twist_cmd_callback(self, msg):
-        self.twist = msg.twist
+        #self.twist = msg.twist
+        self.twist = msg
 
     #Current_velocity callback comes from twist.
     def current_velocity_callback(self, msg):
-        self.current_velocity = msg.velocity
+        #self.current_velocity = msg.velocity
+        self.current_velocity = msg
             
     #Pose callback comes from messages in pose.
     def pose_callback(self, msg):
-	self.pose = msg.pose
+	#self.pose = msg.pose
+	self.pose = msg
             
     #DBW info comes in from data.
     def dbw_enabled_callback(self, msg):
-        self.dbw_enabled = msg.data
+        #self.dbw_enabled = msg.data
+        self.dbw_enabled = msg
     
     #Populate waypoints
     def waypoints_callback(self, msg):
-        self.waypoints = msg.waypoints
+        #self.waypoints = msg.waypoints
+        self.waypoints = msg
 
 
 if __name__ == '__main__':
