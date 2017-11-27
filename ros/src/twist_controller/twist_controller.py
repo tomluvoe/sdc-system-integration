@@ -1,7 +1,4 @@
-
-# coding: utf-8
-
-# In[2]:
+#!/usr/bin/env python
 
 import rospy
 from pid import PID

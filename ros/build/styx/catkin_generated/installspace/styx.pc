@@ -1,0 +1,8 @@
+prefix=/home/student/team-CarND/sdc-system-integration/ros/install
+
+Name: styx
+Description: Description of styx
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/student/team-CarND/sdc-system-integration/ros/install/lib 
+Requires: 
