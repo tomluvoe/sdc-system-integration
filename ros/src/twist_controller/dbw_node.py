@@ -115,15 +115,17 @@ class DBWNode(object):
                 if self.reset:
                     self.controller.reset()
                     self.reset = False
-                
+
                 #Commands from twist controlller
                 throttle, brake, steering = self.controller.control(self.twist_cmd, self.current_velocity, delta_t, self.pose, self.waypoints)
                 
+                rospy.loginfo("dbw_node: throttle: %f brake: %f steering: %f", throttle, brake, steering) 
             else:
                 self.reset = True
                 throttle = 0.0
                 brake = 0.0
                 steering = 0.0
+                rospy.loginfo("dbw_node: reset") 
             
             self.publish(throttle, brake, steering)
             
@@ -148,8 +150,8 @@ class DBWNode(object):
         self.brake_pub.publish(bcmd)
         
     def  twist_cmd_callback(self, msg):
-        #self.twist = msg.twist
-        self.twist = msg
+        #self.twist_cmd = msg.twist
+        self.twist_cmd = msg
 
     #Current_velocity callback comes from twist.
     def current_velocity_callback(self, msg):
