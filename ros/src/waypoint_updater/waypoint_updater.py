@@ -76,6 +76,9 @@ class WaypointUpdater(object):
             final_waypoints = Lane()
             for i in range(LOOKAHEAD_WPS):
                 final_waypoints.waypoints.append(base_wp[(i+closest_wp)%len(base_wp)])
+            for i in range(len(final_waypoints.waypoints)):
+                self.set_waypoint_velocity(final_waypoints.waypoints, i, 20)
+            final_waypoints.header.stamp = rospy.Time(0)
             self.final_waypoints_pub.publish(final_waypoints)
 
     def closest_waypoint(self, waypoints, car_pose):
