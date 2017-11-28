@@ -10,6 +10,7 @@ from light_classification.tl_classifier import TLClassifier
 import tf
 import cv2
 import yaml
+import numpy as np
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -101,7 +102,19 @@ class TLDetector(object):
 
         """
         #TODO implement
-        return 0
+        
+        closest_waypoint = -1
+        
+        if len(self.waypoints) == 0:
+            return
+
+        waypoints_array = np.asarray([(w.post.pose.position_x, w.pose.pose.position_y) for w in self.waypoints])
+        
+        car_position = np.asarray([pose.position_x, pose.position_y])
+        waypoint_distance = np.sum((waypoints_array - car_position)**2, axis=1)
+        closest_waypoint = np.argmin(waypoint_distance)
+
+        return closest_waypoint
 
     def get_light_state(self, light):
         """Determines the current color of the traffic light
@@ -132,16 +145,36 @@ class TLDetector(object):
 
         """
         light = None
+        closest_stop_wp = None
+        distance_to_light = 200
+        
 
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
-        if(self.pose):
+        if (self.pose):
             car_position = self.get_closest_waypoint(self.pose.pose)
+        else:
+            return -1, TrafficLight.UNKOWN
 
         #TODO find the closest visible traffic light (if one exists)
-
-        if light:
-            state = self.get_light_state(light)
+        for stop_line_position in stop_line_positions:
+            stop_light_pose = Pose()
+            stop_light_pose.position_x = stop_line_position[0]
+            stop_light_pose.position_y = stop_line_position[1]
+            light_wp = self.get_closest_waypoint(stop_light_pose)
+                if light_wp >= car_position:                 # if the line is ahead of the car
+                    if closest_stop_wp is None:             # this is the first time we're seeing a stopping waypoint
+                        closest_stop_wp = light_wp
+                        light = stop_light_pose
+                    elif light_wp < closest_stop_wp:         # we're seeing a waypoint that is closer than the closest observed so far
+                        closest_stop_wp = light_wp
+                        light = stop_light_pose
+        
+        if ((car_position is not None) and (closest_stop_wp is not None)):      # did we find a light ahead of us
+            distance_to_light = abs(closest_stop_wp - car_position)
+        
+        if light and distance_to_light <= 100:      # only if we are reasonably close to the light
+            state = self.get_light_state(light)     # currently the state will return UNKOWN while get_classification has not been implemented
             return light_wp, state
         self.waypoints = None
         return -1, TrafficLight.UNKNOWN
