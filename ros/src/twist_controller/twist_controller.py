@@ -81,14 +81,14 @@ class Controller(object):
         velocity_error = vel_linear - c_v.twist.linear.x
 
         #FIXME: DEFINITION OF ACCEL_ANGULAR MISSING
-        accel_angular = 0
+        accel_angular = vel_anglular
         # Steering prediction
         steer = self.yaw_controller.get_steering(vel_linear, accel_angular, c_v.twist.linear.x)
         
 
         # Steer correction
         #FIXME: INCORRECT NUMBER OF VARIABLES
-        steer_correction = 0
+        steer_correction = self.pid_steer.step(cte, cte_delta * t_delta)
         #steer_correction = self.pid_steer.step(cte, t_delta, steer, self.S.max_steer_angle)
         steer = steer_correction + steer
 
