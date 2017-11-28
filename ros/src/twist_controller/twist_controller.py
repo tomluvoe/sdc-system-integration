@@ -66,6 +66,7 @@ class Controller(object):
         self.last_cte = 0
         self.p1 = .0001
         self.p2 = .0001
+        #self.prev_vel_angular = 0
 
 
     def control(self, twist_cmd, c_v, t_delta, pose, waypoints):
@@ -82,6 +83,7 @@ class Controller(object):
 
         #FIXME: DEFINITION OF ACCEL_ANGULAR MISSING
         accel_angular = vel_anglular
+        #accel_angular = vel_anglular - self.prev_vel_angular
         # Steering prediction
         steer = self.yaw_controller.get_steering(vel_linear, accel_angular, c_v.twist.linear.x)
         

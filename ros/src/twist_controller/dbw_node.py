@@ -84,7 +84,8 @@ class DBWNode(object):
         
 
     def loop(self):
-        rate = rospy.Rate(50) # 50Hz
+        #rate = rospy.Rate(50) # 50Hz
+        rate = rospy.Rate(100) # 50Hz
         while not rospy.is_shutdown():
             # TODO: Get predicted throttle, brake, and steering using `twist_controller`
             # You should only publish the control commands if dbw is enabled
@@ -96,9 +97,9 @@ class DBWNode(object):
                 continue
 
             # Chck for divide by zero.
-            # Commenting for now, check why this is erroing delta_t = (time.nsec - self.initial_time.nsec) * 1e-6
             #FIXME: Commenting for now, check why this is erroing delta_t = (time.nsec - self.initial_time.nsec) * 1e-6
-            delta_t = (time - self.initial_time) * 1e-9  # Isn't nsec 9 zeros
+            #delta_t = (time - self.initial_time) * 1e-9  # Isn't nsec 9 zeros
+            delta_t = (time - self.initial_time) * 1e-3  # Isn't nsec 9 zeros
 
             # Make sure there are enough waypoints.
             waypoints_in = self.waypoints is not None
