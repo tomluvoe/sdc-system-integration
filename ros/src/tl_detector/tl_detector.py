@@ -55,8 +55,8 @@ class TLDetector(object):
     def pose_cb(self, msg):
         self.pose = msg
 
-    def waypoints_cb(self, waypoints):
-        self.waypoints = waypoints
+    def waypoints_cb(self, lane):
+        self.waypoints = lane.waypoints
 
     def traffic_cb(self, msg):
         self.lights = msg.lights
@@ -105,12 +105,12 @@ class TLDetector(object):
         
         closest_waypoint = -1
         
-        if len(self.waypoints) == 0:
+        if self.waypoints is None or len(self.waypoints) == 0:
             return
 
-        waypoints_array = np.asarray([(w.post.pose.position_x, w.pose.pose.position_y) for w in self.waypoints])
+        waypoints_array = np.asarray([(w.pose.pose.position.x, w.pose.pose.position.y) for w in self.waypoints])
         
-        car_position = np.asarray([pose.position_x, pose.position_y])
+        car_position = np.asarray([pose.position.x, pose.position.y])
         waypoint_distance = np.sum((waypoints_array - car_position)**2, axis=1)
         closest_waypoint = np.argmin(waypoint_distance)
 
@@ -154,21 +154,21 @@ class TLDetector(object):
         if (self.pose):
             car_position = self.get_closest_waypoint(self.pose.pose)
         else:
-            return -1, TrafficLight.UNKOWN
+            return -1, TrafficLight.UNKNOWN
 
         #TODO find the closest visible traffic light (if one exists)
         for stop_line_position in stop_line_positions:
             stop_light_pose = Pose()
-            stop_light_pose.position_x = stop_line_position[0]
-            stop_light_pose.position_y = stop_line_position[1]
+            stop_light_pose.position.x = stop_line_position[0]
+            stop_light_pose.position.y = stop_line_position[1]
             light_wp = self.get_closest_waypoint(stop_light_pose)
-                if light_wp >= car_position:                 # if the line is ahead of the car
-                    if closest_stop_wp is None:             # this is the first time we're seeing a stopping waypoint
-                        closest_stop_wp = light_wp
-                        light = stop_light_pose
-                    elif light_wp < closest_stop_wp:         # we're seeing a waypoint that is closer than the closest observed so far
-                        closest_stop_wp = light_wp
-                        light = stop_light_pose
+            if light_wp >= car_position:                 # if the line is ahead of the car
+                if closest_stop_wp is None:             # this is the first time we're seeing a stopping waypoint
+                    closest_stop_wp = light_wp
+                    light = stop_light_pose
+                elif light_wp < closest_stop_wp:         # we're seeing a waypoint that is closer than the closest observed so far
+                    closest_stop_wp = light_wp
+                    light = stop_light_pose
         
         if ((car_position is not None) and (closest_stop_wp is not None)):      # did we find a light ahead of us
             distance_to_light = abs(closest_stop_wp - car_position)
