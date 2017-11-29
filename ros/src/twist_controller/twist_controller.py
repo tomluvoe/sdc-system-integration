@@ -62,7 +62,7 @@ class Controller(object):
         #Initial paramaters
         self.S = S
         self.driverless_mass = self.S.vehicle_mass + self.S.fuel_capacity * GAS_DENSITY
-        self.pid_steer = PID(.6, .0022, .26, -S.max_steer_angle, S.max_steer_angle)
+        self.pid_steer = PID(.6, .0004, .01, -S.max_steer_angle, S.max_steer_angle)
         self.last_cte = 0
         self.p1 = .0001
         self.p2 = .0001
@@ -90,7 +90,7 @@ class Controller(object):
 
         # Steer correction
         #FIXME: INCORRECT NUMBER OF VARIABLES
-        steer_correction = self.pid_steer.step(steer, cte_delta * t_delta)
+        steer_correction = self.pid_steer.step(steer, cte_delta)
         #steer_correction = self.pid_steer.step(cte, t_delta, steer, self.S.max_steer_angle)
         steer = steer_correction + steer
 
