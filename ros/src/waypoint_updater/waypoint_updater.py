@@ -65,7 +65,7 @@ class WaypointUpdater(object):
         self.publish_waypoints()
 
     def traffic_cb(self, msg):
-        rospy.loginfo("wp_updater: Traffic waypoint received %d", msg)
+        rospy.loginfo("wp_updater: Traffic waypoint received %i", msg)
         self.next_stop = msg
         self.publish_waypoints()
 
@@ -74,7 +74,7 @@ class WaypointUpdater(object):
         pass
 
     def publish_waypoints(self):
-        if(self.base_waypoints and self.current_pose):
+        if self.base_waypoints and self.current_pose:
             car_p = self.current_pose
             base_wp = self.base_waypoints
             closest_wp = self.closest_waypoint(base_wp, car_p)
@@ -82,7 +82,7 @@ class WaypointUpdater(object):
             mapy = base_wp[closest_wp].pose.pose.position.y
             heading = math.atan2(mapy-car_p.position.y, mapx-car_p.position.x)
             angle = abs(self.theta - heading)
-            if (angle > math.pi/4):
+            if angle > math.pi/4:
                 closest_wp += 1
             rospy.loginfo("wp_updater: Next wp for car %f, %f is %i", car_p.position.x, car_p.position.y, closest_wp)
 
