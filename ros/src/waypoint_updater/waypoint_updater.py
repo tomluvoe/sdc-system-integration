@@ -86,16 +86,16 @@ class WaypointUpdater(object):
                 closest_wp += 1
             rospy.loginfo("wp_updater: Next wp for car %f, %f is %i", car_p.position.x, car_p.position.y, closest_wp)
 
-            stop_at_wp = self.upcoming_red_light
-            distance_to_stop = self.distance(self.base_waypoints, closest_wp, stop_at_wp) - MARGIN_TO_LIGHT
             deceleration = 0.0
-            if self.distance(self.base_waypoints, closest_wp, stop_at_wp) < BRAKE_DISTANCE:
-                deceleration = (self.velocity / distance_to_stop)*1.1
+            if self.upcoming_red_light >= 0:
+                distance_to_stop = self.distance(self.base_waypoints, closest_wp, self.upcoming_red_light) - MARGIN_TO_LIGHT
+                if self.distance(self.base_waypoints, closest_wp, self.upcoming_red_light) < BRAKE_DISTANCE:
+                    deceleration = (self.velocity / distance_to_stop)*1.1
 
             for i in range(len(base_wp)):
                 self.set_waypoint_velocity(base_wp, i, TARGET_SPEED)
             #FIXME: In case stop at wp is a low number, and closes wp is large, but they are close
-            for i in range(closest_wp, stop_at_wp):
+            for i in range(closest_wp, self.upcoming_red_light):
                 delta = self.distance(self.base_waypoints, closest_wp, i)
                 self.set_waypoint_velocity(base_wp, i, max(TARGET_SPEED-deceleration*delta,0))
 
