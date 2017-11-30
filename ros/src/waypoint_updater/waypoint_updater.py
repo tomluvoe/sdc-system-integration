@@ -65,8 +65,8 @@ class WaypointUpdater(object):
         self.publish_waypoints()
 
     def traffic_cb(self, msg):
-        rospy.loginfo("wp_updater: Traffic waypoint received %i", msg)
-        self.next_stop = msg
+        rospy.loginfo("wp_updater: Traffic waypoint received %i", msg.data)
+        self.next_stop = msg.data
         self.publish_waypoints()
 
     def obstacle_cb(self, msg):
