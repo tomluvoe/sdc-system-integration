@@ -23,7 +23,9 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
-
+BRAKE_DISTANCE = 25
+MARGIN_TO_LIGHT = 1.0
+TARGET_SPEED = 20
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -31,21 +33,30 @@ class WaypointUpdater(object):
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
+        rospy.Subscriber('/current_velocity', TwistStamped, self.velocity_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
         # TODO: Add other member variables you need below
         self.base_waypoints = None
         self.current_pose = None
+        self.upcoming_red_light = -1
+        self.theta = 0.0
+        self.velocity = 0.0
 
         rospy.spin()
+
+    def velocity_cb(self, msg):
+        self.velocity = msg.twist.linear.x
 
     def pose_cb(self, msg):
         self.current_pose = msg.pose
         #rospy.loginfo("wp_updater: Current position %f, %f", self.current_pose.position.x, self.current_pose.position.y)
+        orientation = self.current_pose.orientation
+        self.theta = tf.transformations.euler_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])[2]
         self.publish_waypoints()
 
     def waypoints_cb(self, lane):
@@ -53,8 +64,9 @@ class WaypointUpdater(object):
         self.publish_waypoints()
 
     def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+        rospy.loginfo("wp_updater: Traffic waypoint received %d", msg)
+        self.next_stop = msg
+        self.publish_waypoints()
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -68,16 +80,28 @@ class WaypointUpdater(object):
             mapx = base_wp[closest_wp].pose.pose.position.x
             mapy = base_wp[closest_wp].pose.pose.position.y
             heading = math.atan2(mapy-car_p.position.y, mapx-car_p.position.x)
-            theta = car_p.orientation.w
-            angle = abs(theta - heading)
+            angle = abs(self.theta - heading)
             if (angle > math.pi/4):
                 closest_wp += 1
             rospy.loginfo("wp_updater: Next wp for car %f, %f is %i", car_p.position.x, car_p.position.y, closest_wp)
+
+            stop_at_wp = self.upcoming_red_light
+            distance_to_stop = self.distance(self.base_waypoints, closest_wp, stop_at_wp) - MARGIN_TO_LIGHT
+            deceleration = 0.0
+            if self.distance(self.base_waypoints, closest_wp, stop_at_wp) < BRAKE_DISTANCE:
+                deceleration = (self.velocity / distance_to_stop)*1.1
+
+            for i in range(len(base_wp)):
+                self.set_waypoint_velocity(base_wp, i, TARGET_SPEED)
+            #FIXME: In case stop at wp is a low number, and closes wp is large, but they are close
+            for i in range(closest_wp, stop_at_wp):
+                delta = self.distance(self.base_waypoints, closest_wp, i)
+                self.set_waypoint_velocity(base_wp, i, max(TARGET_SPEED-deceleration*delta,0))
+
             final_waypoints = Lane()
             for i in range(LOOKAHEAD_WPS):
                 final_waypoints.waypoints.append(base_wp[(i+closest_wp)%len(base_wp)])
-            for i in range(len(final_waypoints.waypoints)):
-                self.set_waypoint_velocity(final_waypoints.waypoints, i, 20)
+
             final_waypoints.header.stamp = rospy.Time(0)
             self.final_waypoints_pub.publish(final_waypoints)
 
