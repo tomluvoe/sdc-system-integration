@@ -26,7 +26,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
 BRAKE_DISTANCE = 25
 MARGIN_TO_LIGHT = 1.0
-TARGET_SPEED = 20
+TARGET_SPEED = 10
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -48,6 +48,10 @@ class WaypointUpdater(object):
         self.theta = 0.0
         self.velocity = 0.0
 
+    rate = rospy.Rate(5)
+    while not rospy.is_shutdown():
+        self.publish_waypoints()
+        rate.sleep()
         rospy.spin()
 
     def velocity_cb(self, msg):
@@ -58,20 +62,26 @@ class WaypointUpdater(object):
         #rospy.loginfo("wp_updater: Current position %f, %f", self.current_pose.position.x, self.current_pose.position.y)
         orientation = self.current_pose.orientation
         self.theta = tf.transformations.euler_from_quaternion([orientation.x, orientation.y, orientation.z, orientation.w])[2]
-        self.publish_waypoints()
+        ##self.publish_waypoints()
 
     def waypoints_cb(self, lane):
         self.base_waypoints = lane.waypoints
-        self.publish_waypoints()
+        ##self.publish_waypoints()
 
     def traffic_cb(self, msg):
-        rospy.loginfo("wp_updater: Traffic waypoint received %i", msg.data)
+        # TODO: Callback for /traffic_waypoint message. Implement
+	    rospy.loginfo("wp_updater: Traffic waypoint received %i", msg.data)
         self.next_stop = msg.data
-        self.publish_waypoints()
+        self.upcoming_red_light = msg.data
+        #rospy.loginfo("RED LIGHT:")
+        ##self.publish_waypoints()
+	pass
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
         pass
+
+
 
     def publish_waypoints(self):
         if self.base_waypoints and self.current_pose:
@@ -84,11 +94,13 @@ class WaypointUpdater(object):
             angle = abs(self.theta - heading)
             if angle > math.pi/4:
                 closest_wp += 1
-            rospy.loginfo("wp_updater: Next wp for car %f, %f is %i", car_p.position.x, car_p.position.y, closest_wp)
+            rospy.loginfo("xxxwp_updater: Next wp for car %f, %f is %i L=%i", car_p.position.x, car_p.position.y, closest_wp, self.upcoming_red_light)
 
             deceleration = 0.0
             if self.upcoming_red_light >= 0:
                 distance_to_stop = self.distance(self.base_waypoints, closest_wp, self.upcoming_red_light) - MARGIN_TO_LIGHT
+                dist = self.distance(self.base_waypoints, closest_wp, self.upcoming_red_light)
+                rospy.loginfo("yyyyp_updater: Next wp for car is %i L=%i", dist, BRAKE_DISTANCE)
                 if self.distance(self.base_waypoints, closest_wp, self.upcoming_red_light) < BRAKE_DISTANCE:
                     deceleration = (self.velocity / distance_to_stop)*1.1
 
