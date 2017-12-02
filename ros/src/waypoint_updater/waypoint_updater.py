@@ -70,7 +70,7 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
-	    rospy.loginfo("wp_updater: Traffic waypoint received %i", msg.data)
+        rospy.loginfo("wp_updater: Traffic waypoint received %i", msg.data)
         self.next_stop = msg.data
         self.upcoming_red_light = msg.data
         #rospy.loginfo("RED LIGHT:")
