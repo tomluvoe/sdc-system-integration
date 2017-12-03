@@ -44,14 +44,16 @@ class WaypointUpdater(object):
         # TODO: Add other member variables you need below
         self.base_waypoints = None
         self.current_pose = None
+        self.next_stop = None
         self.upcoming_red_light = -1
         self.theta = 0.0
         self.velocity = 0.0
 
-    rate = rospy.Rate(5)
-    while not rospy.is_shutdown():
-        self.publish_waypoints()
-        rate.sleep()
+	rate = rospy.Rate(50)
+	while not rospy.is_shutdown():
+		self.publish_waypoints()
+		rate.sleep()
+
         rospy.spin()
 
     def velocity_cb(self, msg):
@@ -70,9 +72,9 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
-        rospy.loginfo("wp_updater: Traffic waypoint received %i", msg.data)
-        self.next_stop = msg.data
-        self.upcoming_red_light = msg.data
+	#rospy.loginfo("yyyy wp_updater: Traffic waypoint received %i", msg.data)
+        #self.next_stop = msg.data 
+        self.upcoming_red_light = msg.data 
         #rospy.loginfo("RED LIGHT:")
         ##self.publish_waypoints()
 	pass
@@ -81,9 +83,8 @@ class WaypointUpdater(object):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
         pass
 
-
-
     def publish_waypoints(self):
+
         if self.base_waypoints and self.current_pose:
             car_p = self.current_pose
             base_wp = self.base_waypoints
@@ -94,22 +95,35 @@ class WaypointUpdater(object):
             angle = abs(self.theta - heading)
             if angle > math.pi/4:
                 closest_wp += 1
-            rospy.loginfo("xxxwp_updater: Next wp for car %f, %f is %i L=%i", car_p.position.x, car_p.position.y, closest_wp, self.upcoming_red_light)
+            #rospy.loginfo("yyywp_updater: Next wp for car x:%f, y:%f is cl_wp:%i redlgt:%d ", car_p.position.x, car_p.position.y, closest_wp, self.upcoming_red_light)
 
             deceleration = 0.0
-            if self.upcoming_red_light >= 0:
+            if self.upcoming_red_light >= 0 and closest_wp == self.upcoming_red_light:
+                rospy.loginfo("yyywp_updater: Next wp for car x:%f, y:%f is cl_wp:%i redlgt:%d ", car_p.position.x, car_p.position.y, closest_wp, self.upcoming_red_light)
                 distance_to_stop = self.distance(self.base_waypoints, closest_wp, self.upcoming_red_light) - MARGIN_TO_LIGHT
                 dist = self.distance(self.base_waypoints, closest_wp, self.upcoming_red_light)
-                rospy.loginfo("yyyyp_updater: Next wp for car is %i L=%i", dist, BRAKE_DISTANCE)
+            	rospy.loginfo("yywp_updater: Next wp for car x:%f, y:%f is cl_wp:%i redlgt:%d ", car_p.position.x, car_p.position.y, closest_wp, self.upcoming_red_light)
+            	rospy.loginfo("yywp_updater: Next wp for car is dist:%i brakingdisy:%i url:%i", dist, BRAKE_DISTANCE, self.upcoming_red_light) 
                 if self.distance(self.base_waypoints, closest_wp, self.upcoming_red_light) < BRAKE_DISTANCE:
                     deceleration = (self.velocity / distance_to_stop)*1.1
+            	    rospy.loginfo("yywp_updater: Next wp for car is dist:%i brakingdisy:%i url:%i", dist, BRAKE_DISTANCE, self.upcoming_red_light) 
 
             for i in range(len(base_wp)):
                 self.set_waypoint_velocity(base_wp, i, TARGET_SPEED)
+
             #FIXME: In case stop at wp is a low number, and closes wp is large, but they are close
-            for i in range(closest_wp, self.upcoming_red_light):
-                delta = self.distance(self.base_waypoints, closest_wp, i)
-                self.set_waypoint_velocity(base_wp, i, max(TARGET_SPEED-deceleration*delta,0))
+
+            
+            if self.upcoming_red_light >= 0 and closest_wp == self.upcoming_red_light:
+	        for i in range(closest_wp, self.upcoming_red_light):
+	            delta = self.distance(self.base_waypoints, closest_wp, i)
+		    rospy.loginfo("xyzdelta :%i decel:%i  i : %i", delta, deceleration, i)
+		    self.set_waypoint_velocity(base_wp, i, min(TARGET_SPEED-deceleration*delta,0))
+	    else:
+		for i in range(closest_wp, self.upcoming_red_light):
+		    delta = self.distance(self.base_waypoints, closest_wp, i)
+		    #rospy.loginfo("yyydelta :%i decel:%i  i : %i", delta, deceleration, i)
+		    self.set_waypoint_velocity(base_wp, i, min(TARGET_SPEED-deceleration*delta,0))
 
             final_waypoints = Lane()
             for i in range(LOOKAHEAD_WPS):
@@ -117,6 +131,7 @@ class WaypointUpdater(object):
 
             final_waypoints.header.stamp = rospy.Time(0)
             self.final_waypoints_pub.publish(final_waypoints)
+
 
     def closest_waypoint(self, waypoints, car_pose):
         dist = sys.maxsize
