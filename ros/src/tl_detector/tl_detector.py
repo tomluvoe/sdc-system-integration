@@ -274,8 +274,8 @@ class TLDetector(object):
         #TODO: Only one complete circle, no minimum distance considered, yet
         for i in range(0, len(traffic_light_positions)):
             index = self.get_closest_waypoint(float(traffic_light_positions[i][0]), float(traffic_light_positions[i][1]))
-            if index > waypoint_start_index and index < last_index:
-                last_index = index;
+            if index >= waypoint_start_index and index < last_index:
+                last_index = index
                 traffic_light = traffic_light_positions[i]
 
         return traffic_light, last_index
@@ -292,10 +292,11 @@ class TLDetector(object):
         if(self.pose):
             #find the closest visible traffic light (if one exists)
             car_position = self.get_closest_waypoint(self.pose.position.x, self.pose.position.y)
+            #rospy.loginfo("wp_updater tl_detector: car wp %i", car_position)
 
-            light_pos = None
             if car_position > 0:
                 light_pos, light_waypoint = self.get_nearest_traffic_light(car_position)
+                #rospy.loginfo("wp_updater tl_detector: light wp %i (%i)", light_waypoint, len(self.waypoints))
 
                 if light_pos:
                     #rospy.loginfo("Next traffic light ahead from waypoint " + str(car_position) +
