@@ -6,7 +6,7 @@ Copied from https://github.com/udacity/CarND-Capstone
 
 Thomas Luvoe, tom@luvoe.se (team lead)
 Satish Nandi, satish@nandi.net
-David Hayes, 7dkh@queensu.ca
+David Hayes, davhayes@cisco.com
 Trevor Conley, trevor.r.conley@gmail.com
 
 ---
