@@ -31,7 +31,7 @@ LOOKAHEAD_WPS = 50 # Number of waypoints we will publish. You can change this nu
 BRAKE_DISTANCE = 40
 MARGIN_TO_LIGHT = 10
 TARGET_SPEED = 10
-STATE_DELAY_COUNTER = 5
+STATE_DELAY_COUNTER = 14 # approx 0.25 s
 
 class CarState(Enum):
     DRIVING = 1
