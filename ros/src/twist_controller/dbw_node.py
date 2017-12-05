@@ -114,7 +114,7 @@ class DBWNode(object):
             
             #Enable manual override and manual stop.
             #Reset first
-            if self.dbw_enabled and self.twist_cmd is not None and self.current_velocity is not None:
+            if self.dbw_enabled and self.twist_cmd is not None and self.current_velocity is not None and self.pose is not None:
                 if self.reset:
                     self.controller.reset()
                     self.reset = False
