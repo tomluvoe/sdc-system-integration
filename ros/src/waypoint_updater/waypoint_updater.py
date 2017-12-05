@@ -4,6 +4,7 @@ import rospy
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from styx_msgs.msg import Lane, Waypoint
 from std_msgs.msg import Int32
+from enum import Enum
 
 import math
 import sys
@@ -27,9 +28,14 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 
 #LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
 LOOKAHEAD_WPS = 50 # Number of waypoints we will publish. You can change this number
-BRAKE_DISTANCE = 25
+BRAKE_DISTANCE = 40
 MARGIN_TO_LIGHT = 10
 TARGET_SPEED = 10
+STATE_DELAY_COUNTER = 5
+
+class CarState(Enum):
+    DRIVING = 1
+    STOPPING = 2
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -53,6 +59,9 @@ class WaypointUpdater(object):
         self.last_wp = 0
         self.waypoints_array = None
         self.loop = 0
+
+        self.state = CarState.DRIVING
+        self.state_count = 0
 
         rate = rospy.Rate(50)
         while not rospy.is_shutdown():
@@ -81,7 +90,15 @@ class WaypointUpdater(object):
     def traffic_cb(self, msg):
         if msg.data >= 0:
             rospy.loginfo("wp_updater: %i traffic wp %i, car wp %i", self.loop, msg.data, self.last_wp)
-        self.upcoming_red_light = msg.data
+        if msg.data == -1 and self.state == CarState.STOPPING and self.state_count < STATE_DELAY_COUNTER:
+            self.state_count += 1
+        else:
+            self.upcoming_red_light = msg.data
+            self.state_count = 0
+            if self.upcoming_red_light >= 0:
+                self.state = CarState.STOPPING
+            else:
+                self.state = CarState.DRIVING
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -106,9 +123,9 @@ class WaypointUpdater(object):
                 self.set_waypoint_velocity(base_wp, i, TARGET_SPEED)
 
             # Red light identified
-            if self.upcoming_red_light >= 0:
+            if self.state == CarState.STOPPING:
                 distance_to_tl = self.distance(self.base_waypoints, closest_wp_idx, self.upcoming_red_light)
-                if distance_to_tl < 40: # if closer than 40 meters to red
+                if distance_to_tl < BRAKE_DISTANCE: # if closer than 40 meters to red
                     deceleration = abs(1.1 * self.velocity / (distance_to_tl - MARGIN_TO_LIGHT))
                     wp_speed = self.velocity
                     if self.loop % 50 == 0:
